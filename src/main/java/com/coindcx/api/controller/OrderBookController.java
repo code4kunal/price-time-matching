@@ -1,18 +1,18 @@
 package com.coindcx.api.controller;
 
 import com.coindcx.api.exception.CustomException;
-import com.coindcx.api.persistance.POJO.ApiResponse;
-import com.coindcx.api.persistance.POJO.ApiResponseSuccess;
+import com.coindcx.api.persistance.POJO.response.ApiResponse;
+import com.coindcx.api.persistance.POJO.response.ApiResponseSuccess;
+import com.coindcx.api.persistance.POJO.response.ProcessOrderResponse;
 import com.coindcx.api.persistance.POJO.request.AddOrderRequest;
+import com.coindcx.api.services.BookService;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
@@ -20,23 +20,22 @@ import java.security.GeneralSecurityException;
 
 import static org.springframework.web.bind.annotation.RequestMethod.*;
 
-/*
-*
-*
-*
-*/
+
 @RequestMapping(value = "/book")
 public class OrderBookController
 {
-//    @RequestMapping(method = POST, value = "/order", produces = MediaType.APPLICATION_JSON_VALUE)
-//    public ResponseEntity<ApiResponse> addOrder(@RequestBody AddOrderRequest createHubRequest,
-//                                                @PathVariable("userID") Long userID, HttpServletRequest request) throws JsonProcessingException,
-//            CustomException, UnsupportedEncodingException, GeneralSecurityException {
-//
-//        userService.checkIfUserExists(userID, request);
-//        HubEntity hub = entityService.createHub(createHubRequest);
-//        return new ResponseEntity<>(new ApiResponseSuccess(hub, "Hub created successfully."), HttpStatus.OK);
-//    }
+    @Autowired
+    private BookService bookService;
+
+
+    @RequestMapping(method = POST, value = "/order", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse> addOrder(@RequestBody AddOrderRequest addOrderRequest,
+                                                HttpServletRequest request) throws JsonProcessingException,
+            CustomException, UnsupportedEncodingException, GeneralSecurityException {
+
+        ProcessOrderResponse response = bookService.processOrder(addOrderRequest);
+        return new ResponseEntity<>(new ApiResponseSuccess(response, "Order processed successfully."), HttpStatus.OK);
+    }
 
 //    @RequestMapping(method = PUT, value = "/{userID}/hub/{hubID}", produces = MediaType.APPLICATION_JSON_VALUE)
 //    public ResponseEntity<ApiResponse> updateHub(@RequestBody CreateHubRequest createHubRequest,

@@ -16,7 +16,7 @@ import java.sql.Time;
 @NoArgsConstructor
 @Entity
 @Table(name = "order_book")
-public class OrderBook {
+public class OrderBookEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "driver_id")

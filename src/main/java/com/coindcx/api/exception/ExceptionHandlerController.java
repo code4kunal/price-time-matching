@@ -1,6 +1,6 @@
 package com.coindcx.api.exception;
 
-import com.coindcx.api.persistance.POJO.ApiResponseError;
+import com.coindcx.api.persistance.POJO.response.ApiResponseError;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;

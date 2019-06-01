@@ -1,11 +1,12 @@
-package com.coindcx.api.persistance.POJO;
+package com.coindcx.api.persistance.POJO.response;
 
+import com.coindcx.api.persistance.POJO.response.ApiResponse;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class ApiResponseSuccess extends ApiResponse{
+public class ApiResponseSuccess extends ApiResponse {
     private Object data;
     private String message;
     private String code;
