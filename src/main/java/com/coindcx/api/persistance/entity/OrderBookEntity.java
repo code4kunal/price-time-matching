@@ -2,12 +2,14 @@ package com.coindcx.api.persistance.entity;
 
 
 import com.coindcx.api.constants.Action;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 import java.sql.Time;
 
 @Getter
@@ -19,19 +21,31 @@ import java.sql.Time;
 public class OrderBookEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "driver_id")
-    private Long driverID;
+    @Column(name = "order_id")
+    private Long orderID;
 
     @Column(name = "time")
     private Time time;
 
     @Column(name = "size")
-    private Long size;
+    private BigDecimal size;
 
     @Column(name = "price")
-    private Long price;
+    private BigDecimal price;
 
     @Enumerated(EnumType.STRING)
     @Column(name="side")
     private Action side = Action.BUY;
+
+    @Column(name = "is_active")
+    private Boolean isActive = Boolean.TRUE;
+
+    public OrderBookEntity(Time time,  BigDecimal size, BigDecimal price, Action side, Boolean isActive){
+        this.time = time;
+        this.size = size;
+        this.price = price;
+        this.side = side;
+        this.isActive = isActive;
+    }
+
 }

@@ -38,25 +38,14 @@ public class OrderBookController {
         return new ResponseEntity<>(new ApiResponseSuccess(response, "Order processed successfully."), HttpStatus.OK);
     }
 
-    @RequestMapping(method = GET, value = "/order", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse> getOrderById(@RequestBody AddOrderRequest addOrderRequest,
-                                                    @RequestParam(required = true) Long orderId,
-                                                    HttpServletRequest request) throws JsonProcessingException,
-            CustomException, UnsupportedEncodingException, GeneralSecurityException {
-
-        OrderBookEntity response = bookService.getOrder(orderId);
-        return new ResponseEntity<>(new ApiResponseSuccess(response, "Order fethced successfully."), HttpStatus.OK);
-    }
-
-    @RequestMapping(method = GET, value = "/order", produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(method = GET, value = "", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse> getAllPaginatedOrders(@RequestBody AddOrderRequest addOrderRequest,
-                                                             @RequestParam Long orderId,
-                                                             @RequestParam(name = "limit", required = false, defaultValue = "50") String limit,
-                                                             @RequestParam(name = "offset", required = false, defaultValue = "0") String offset,
+                                                             @RequestParam String side,
+                                                             @RequestParam(name = "limit", required = false, defaultValue = "50") String limit, @RequestParam(name = "offset", required = false, defaultValue = "0") String offset,
                                                              HttpServletRequest request) throws JsonProcessingException,
             CustomException, UnsupportedEncodingException, GeneralSecurityException {
 
         List<OrderBookEntity> response = bookService.getAllOrders();
-        return new ResponseEntity<>(new ApiResponseSuccess(response, "Orders fetched successfully."), HttpStatus.OK);
+        return new ResponseEntity<>(new ApiResponseSuccess(response, "Book fetched successfully."), HttpStatus.OK);
     }
 }
