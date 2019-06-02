@@ -3,11 +3,11 @@ package com.coindcx.api.services;
 import com.coindcx.api.constants.Action;
 import com.coindcx.api.constants.Errors;
 import com.coindcx.api.exception.CustomException;
-import com.coindcx.api.persistance.POJO.Transaction;
-import com.coindcx.api.persistance.POJO.response.ProcessOrderResponse;
-import com.coindcx.api.persistance.POJO.request.AddOrderRequest;
-import com.coindcx.api.persistance.dao.OrderBookDAO;
-import com.coindcx.api.persistance.entity.OrderBookEntity;
+import com.coindcx.api.persistence.POJO.Transaction;
+import com.coindcx.api.persistence.POJO.response.ProcessedOrderResponse;
+import com.coindcx.api.persistence.POJO.request.AddOrderRequest;
+import com.coindcx.api.persistence.dao.OrderBookDAO;
+import com.coindcx.api.persistence.entity.OrderBookEntity;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import org.apache.commons.lang3.StringUtils;
@@ -27,7 +27,11 @@ public class BookService {
     private static final String BUY = Action.BUY.toString();
     private static final String SELL = Action.SELL.toString();
 
-    public ProcessOrderResponse processOrder(AddOrderRequest req) throws CustomException {
+   /*
+    * This function process incoming order based on the given side, i.e buy and sell.
+    *
+    * */
+    public ProcessedOrderResponse processOrder(AddOrderRequest req) throws CustomException {
         Multimap<BigDecimal, OrderBookEntity> mapOfOrders = ArrayListMultimap.create();
         String action = req.getSide();
         String side = action.equalsIgnoreCase(BUY) ? BUY : SELL;
@@ -35,89 +39,118 @@ public class BookService {
 
         switch (side) {
             case "BUY":
-                List<OrderBookEntity> sellOrders = orderBookDAO.getAllSellOrdersSortedByPrice(Action.SELL);
+                List<OrderBookEntity> sellOrders = orderBookDAO.getAllSellOrdersSortedByPriceAndActive(Action.SELL);
                 mapOfOrders = sellOrders.isEmpty() ? ArrayListMultimap.create() : getOrderMap(sellOrders, SELL);
-                ProcessOrderResponse buyOrderResponse = mapOfOrders.isEmpty() ? new ProcessOrderResponse() : matchOrders(req, mapOfOrders, SELL);
+                ProcessedOrderResponse buyOrderResponse = matchOrders(req, mapOfOrders, SELL);
                 return buyOrderResponse;
+
             case "SELL":
-                List<OrderBookEntity> buyOrders = orderBookDAO.getAllBuyOrdersSortedByPrice(Action.BUY);
+                List<OrderBookEntity> buyOrders = orderBookDAO.getAllBuyOrdersSortedByPriceAndActive(Action.BUY);
                 mapOfOrders = buyOrders.isEmpty() ? ArrayListMultimap.create() : getOrderMap(buyOrders, BUY);
-                ProcessOrderResponse sellOrderResponse = mapOfOrders.isEmpty() ? new ProcessOrderResponse() : matchOrders(req, mapOfOrders, BUY);
+                ProcessedOrderResponse sellOrderResponse = matchOrders(req, mapOfOrders, BUY);
                 return sellOrderResponse;
             default:
                 throw new CustomException(Errors.INVALID_SIDE, "400");
         }
     }
-
-    private ProcessOrderResponse matchOrders(AddOrderRequest req, Multimap<BigDecimal, OrderBookEntity> mapOfOrders, String side) {
+    /*
+    * This function matches the incoming order with existing ones based on price-time priority matching.
+    *
+    * */
+    private ProcessedOrderResponse matchOrders(AddOrderRequest req, Multimap<BigDecimal, OrderBookEntity> mapOfOrders, String side) {
+        AddOrderRequest originalReq = req;
         List<Transaction> listOfTxns = new ArrayList<>();
+        List<Transaction> listOfTxnToadd = new ArrayList<>();
         OrderBookEntity savedCompletedOrder = new OrderBookEntity();
-        Set<BigDecimal> listOfSelectedSellOrders = mapOfOrders.keys().stream().filter(key -> key.compareTo(req.getPrice()) > 1).collect(Collectors.toSet());
-        if (listOfSelectedSellOrders.isEmpty()) {
+        String action = req.getSide().equalsIgnoreCase("BUY") ? "SELL" : "BUY";
+        Set<BigDecimal> listOfSelectedOrders = reArrangeOrderByprice(req, mapOfOrders, action);
+
+        if (listOfSelectedOrders.isEmpty()) {
             OrderBookEntity orderToSave = new OrderBookEntity();
             orderToSave.setPrice(req.getPrice());
             orderToSave.setSide(Action.valueOf(req.getSide().toUpperCase()));
             orderToSave.setSize(req.getSize());
             orderToSave.setTime(req.getTime());
             OrderBookEntity savedOrder = orderBookDAO.save(orderToSave);
-            return new ProcessOrderResponse(savedOrder, new ArrayList<>(), Boolean.FALSE);
+            return new ProcessedOrderResponse(savedOrder, new ArrayList<>(), Boolean.FALSE);
         } else {
             if (side.equalsIgnoreCase(SELL)) {
-                for (BigDecimal price : listOfSelectedSellOrders) {
+                for (BigDecimal price : listOfSelectedOrders) {
                     Collection<OrderBookEntity> ordersOfPrice = mapOfOrders.get(price);
                     for (OrderBookEntity or : ordersOfPrice) {
-                        if (req.getSize().compareTo(BigDecimal.ZERO) > 1 &&
-                                req.getPrice().compareTo(or.getPrice()) > 1 && req.getSize().compareTo(or.getSize()) > 1) {
+                        if (req.getSize().compareTo(BigDecimal.ZERO) > 0 && req.getSize().compareTo(or.getSize()) > 0) {
                             req.setSize(req.getSize().subtract(or.getSize()));
                             or.setIsActive(Boolean.FALSE);
                             or.setSize(BigDecimal.ZERO);
                             orderBookDAO.save(or);
-                            OrderBookEntity completedOrder = new OrderBookEntity(req.getTime(), req.getSize(), req.getPrice(), Action.BUY, Boolean.FALSE);
-                            savedCompletedOrder = orderBookDAO.save(completedOrder);
-                            listOfTxns = getTxnList(or);
-                        } else if (req.getSize().compareTo(BigDecimal.ZERO) > 1 &&
-                                req.getPrice().compareTo(or.getPrice()) > 1 && req.getSize().compareTo(or.getSize()) < 1) {
-                            req.setSize(BigDecimal.ZERO);
+                            listOfTxnToadd = getTxnList(or);
+                            listOfTxns.addAll(listOfTxnToadd);
+                        } else if (req.getSize().compareTo(BigDecimal.ZERO) > 0
+                                && (req.getSize().compareTo(or.getSize()) < 0) || req.getSize().compareTo(or.getSize()) == 0) {
                             or.setSize(or.getSize().subtract(req.getSize()));
                             orderBookDAO.save(or);
-                            OrderBookEntity completedOrder = new OrderBookEntity(req.getTime(), req.getSize(), req.getPrice(), Action.BUY, Boolean.FALSE);
+                            req.setSize(BigDecimal.ZERO);
+                            listOfTxnToadd = getTxnList(or);
+                            listOfTxns.addAll(listOfTxnToadd);
+                        }else if (req.getSize().compareTo(BigDecimal.ZERO) == 0){
+                            OrderBookEntity completedOrder = new OrderBookEntity(originalReq.getTime(), originalReq.getSize(), originalReq.getPrice(), Action.SELL, Boolean.FALSE);
                             savedCompletedOrder = orderBookDAO.save(completedOrder);
-                            listOfTxns = getTxnList(or);
                         }
                     }
                 }
 
-                ProcessOrderResponse response = new ProcessOrderResponse(savedCompletedOrder, listOfTxns, Boolean.TRUE);
+                ProcessedOrderResponse response = new ProcessedOrderResponse(savedCompletedOrder, listOfTxns, Boolean.TRUE);
                 return response;
             } else {
-                for (BigDecimal price : listOfSelectedSellOrders) {
+                for (BigDecimal price : listOfSelectedOrders) {
                     Collection<OrderBookEntity> ordersOfPrice = mapOfOrders.get(price);
                     for (OrderBookEntity or : ordersOfPrice) {
-                        if (req.getSize().compareTo(BigDecimal.ZERO) > 1 &&
-                                req.getPrice().compareTo(or.getPrice()) < 1 && req.getSize().compareTo(or.getSize()) > 1) {
+                        if (req.getSize().compareTo(BigDecimal.ZERO) > 0 && req.getSize().compareTo(or.getSize()) > 0) {
                             req.setSize(req.getSize().subtract(or.getSize()));
                             or.setIsActive(Boolean.FALSE);
                             or.setSize(BigDecimal.ZERO);
                             orderBookDAO.save(or);
-                            OrderBookEntity completedOrder = new OrderBookEntity(req.getTime(), req.getSize(), req.getPrice(), Action.SELL, Boolean.FALSE);
-                            savedCompletedOrder = orderBookDAO.save(completedOrder);
-                            listOfTxns = getTxnList(or);
-                        } else if (req.getSize().compareTo(BigDecimal.ZERO) > 1 &&
-                                req.getPrice().compareTo(or.getPrice()) > 1 && req.getSize().compareTo(or.getSize()) < 1) {
+                            listOfTxnToadd = getTxnList(or);
+                            listOfTxns.addAll(listOfTxnToadd);
+                        } else if (req.getSize().compareTo(BigDecimal.ZERO) > 0 && req.getSize().compareTo(or.getSize()) < 0) {
                             req.setSize(BigDecimal.ZERO);
                             or.setSize(or.getSize().subtract(req.getSize()));
                             orderBookDAO.save(or);
-                            OrderBookEntity completedOrder = new OrderBookEntity(req.getTime(), req.getSize(), req.getPrice(), Action.SELL, Boolean.FALSE);
+                            listOfTxnToadd = getTxnList(or);
+                            listOfTxns.addAll(listOfTxnToadd);
+                        } else if (req.getSize().compareTo(BigDecimal.ZERO) == 0){
+                            OrderBookEntity completedOrder = new OrderBookEntity(originalReq.getTime(), originalReq.getSize(), originalReq.getPrice(), Action.SELL, Boolean.FALSE);
                             savedCompletedOrder = orderBookDAO.save(completedOrder);
-                            listOfTxns = getTxnList(or);
                         }
                     }
 
                 }
             }
+
+            ProcessedOrderResponse response = new ProcessedOrderResponse(savedCompletedOrder, listOfTxns, Boolean.TRUE);
+            return response;
         }
     }
 
+    private Set<BigDecimal> reArrangeOrderByprice(AddOrderRequest req, Multimap<BigDecimal, OrderBookEntity> mapOfOrders, String action) {
+        if (action.equalsIgnoreCase("SELL")) {
+            return mapOfOrders.keys().stream()
+                    .filter(key -> key.compareTo(req.getPrice()) < 0)
+                    .sorted()
+                    .collect(Collectors.toSet());
+        } else {
+            return mapOfOrders.keys().stream()
+                    .filter(key -> key.compareTo(req.getPrice()) > 0)
+                    .sorted()
+                    .collect(Collectors.toSet());
+
+        }
+    }
+    /*
+    * This function generates a txn object to provide information on the orders consumed
+    * while processing/matching any incoming order.
+    *
+    * */
     private List<Transaction> getTxnList(OrderBookEntity or) {
         List<Transaction> listOfTxns = new ArrayList<>();
         Transaction txn = new Transaction();
@@ -128,24 +161,35 @@ public class BookService {
         listOfTxns.add(txn);
         return listOfTxns;
     }
-
+    /*
+     * This function creates a multimap for existing orders which has sorted
+     * set based on time in the values for each key.
+     *
+     * */
     private Multimap<BigDecimal, OrderBookEntity> getOrderMap(List<OrderBookEntity> sellOrders, String side) throws CustomException {
         Multimap<BigDecimal, OrderBookEntity> mapOfOrders = ArrayListMultimap.create();
         switch (side) {
             case "SELL":
                 List<OrderBookEntity> sortedSellOrders = sellOrders.stream().sorted(Comparator.comparing(or -> or.getTime())).collect(Collectors.toList());
-                sortedSellOrders.forEach(or -> mapOfOrders.put(or.getPrice(), or));
+                sortedSellOrders.stream()
+                        .sorted((p1, p2) -> p1.getPrice().compareTo(p2.getPrice()))
+                        .forEach(or -> mapOfOrders.put(or.getPrice(), or));
                 return mapOfOrders;
             case "BUY":
                 List<OrderBookEntity> sortedBuyOrders = sellOrders.stream().sorted(Comparator.comparing(or -> or.getTime())).collect(Collectors.toList());
-                sortedBuyOrders.forEach(or -> mapOfOrders.put(or.getPrice(), or));
+                sortedBuyOrders.stream()
+                        .sorted((p1, p2) -> p2.getPrice().compareTo(p1.getPrice()))
+                        .forEach(or -> mapOfOrders.put(or.getPrice(), or));
                 return mapOfOrders;
             default:
                 throw new CustomException(Errors.INVALID_SIDE, "400");
         }
 
     }
-
+    /*
+    * A simple validation wrapper for the add order request.
+    *
+    * */
     private void validateOrderRequest(AddOrderRequest req) throws CustomException {
         if (StringUtils.isBlank(req.getSide()) || (req.getSide().equalsIgnoreCase("BUY")
                 && req.getSide().equalsIgnoreCase("SELL"))) {
@@ -159,11 +203,9 @@ public class BookService {
         }
     }
 
-    public List<OrderBookEntity> getAllOrders() {
-        return new ArrayList<>();
-    }
-
-    public OrderBookEntity getOrder(Long orderId) {
-        return null;
+    public List<OrderBookEntity> getAllOrders(Boolean active ) {
+        List<OrderBookEntity> orders = new ArrayList<>();
+            orders = orderBookDAO.findByIsActive(active);
+        return orders;
     }
 }

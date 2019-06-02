@@ -1,4 +1,4 @@
-package com.coindcx.api.persistance.POJO.response;
+package com.coindcx.api.persistence.POJO.response;
 
 import lombok.Getter;
 import lombok.Setter;

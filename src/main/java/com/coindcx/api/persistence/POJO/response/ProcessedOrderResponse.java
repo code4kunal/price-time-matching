@@ -1,7 +1,7 @@
-package com.coindcx.api.persistance.POJO.response;
+package com.coindcx.api.persistence.POJO.response;
 
-import com.coindcx.api.persistance.POJO.Transaction;
-import com.coindcx.api.persistance.entity.OrderBookEntity;
+import com.coindcx.api.persistence.POJO.Transaction;
+import com.coindcx.api.persistence.entity.OrderBookEntity;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,7 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @Setter
 @Getter
-public class ProcessOrderResponse {
+public class ProcessedOrderResponse {
     OrderBookEntity orderBookEntity;
     List<Transaction> txns;
     Boolean orderMatched;

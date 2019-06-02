@@ -1,8 +1,7 @@
-package com.coindcx.api.persistance.entity;
+package com.coindcx.api.persistence.entity;
 
 
 import com.coindcx.api.constants.Action;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
