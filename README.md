@@ -3,7 +3,7 @@ A spring boot based order matching service based on price-time-matching algorith
 
 ## Solution is based on following principles:
   
-  1. Every incoming whose side is sales will be matched with existing buy orders and vice-versa.
+  1. Every incoming order whose side is sales will be matched with existing buy orders and vice-versa.
   2. For every new buy order, sales order with least amount will be given priority. If there are more than
   one order for that amount, priority will be given to order with earlier timestamp.(FIFO).
   3. For every new sales order, buy order with max amount will be given priority. If there are more than 

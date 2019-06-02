@@ -1,7 +1,7 @@
-package com.coindcx.api.persistence.entity;
+package com.ordermatching.api.persistence.entity;
 
 
-import com.coindcx.api.constants.Action;
+import com.ordermatching.api.constants.Action;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

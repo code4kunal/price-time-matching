@@ -1,6 +1,6 @@
-package com.coindcx.api.exception;
+package com.ordermatching.api.exception;
 
-import com.coindcx.api.persistence.POJO.response.ApiResponseError;
+import com.ordermatching.api.persistence.POJO.response.ApiResponseError;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;

@@ -1,6 +1,6 @@
-package com.coindcx.api.exception;
+package com.ordermatching.api.exception;
 
-import com.coindcx.api.constants.Errors;
+import com.ordermatching.api.constants.Errors;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

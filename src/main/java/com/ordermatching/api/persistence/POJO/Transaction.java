@@ -1,4 +1,4 @@
-package com.coindcx.api.persistence.POJO.request;
+package com.ordermatching.api.persistence.POJO;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -8,9 +8,9 @@ import java.sql.Time;
 
 @Getter
 @Setter
-public class AddOrderRequest {
+public class Transaction {
     private BigDecimal size;
     private BigDecimal price;
     private Time time;
-    private String side;
+    private Long orderID;
 }
