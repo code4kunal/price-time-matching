@@ -6,8 +6,8 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
-@ComponentScan(basePackages = {"com.coindcx"})
-@EnableJpaRepositories(basePackages = {"com.coindcx.api.persistence.dao"})
+@ComponentScan(basePackages = {"com.ordermatching"})
+@EnableJpaRepositories(basePackages = {"com.ordermatching.api.persistence.dao"})
 public class OrderBookApplication {
 
 	public static void main(String[] args) {
