@@ -5,9 +5,9 @@ A spring boot based order matching service based on price-time-matching algorith
   
   1. Every incoming order whose side is sales will be matched with existing buy orders and vice-versa.
   2. For every new buy order, sales order with least amount will be given priority. If there are more than
-  one order for that amount, priority will be given to order with earlier timestamp.(FIFO).
+  one order matched for that amount, priority will be given to order with earlier timestamp.(FIFO).
   3. For every new sales order, buy order with max amount will be given priority. If there are more than 
-  one order for that amount, priority will be given to order with earlier timestamp. (FIFO).
+  one order matched for that amount, priority will be given to order with earlier timestamp. (FIFO).
   4. Currently, just for simulation purpose, we have taken time(java.sql.time) instead of timestamp.
   5. New order will be fullfilled according to the size, only if there are suitable matching orders.
   6. For any new sell order, order can only be matched if its price is more than sell order's price.
